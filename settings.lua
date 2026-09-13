@@ -32,7 +32,7 @@ function Settings:load()
         self.data[k] = v
     end
 
-    if type(loaded) == "table" then
+    if type(loaded) == "table"then
         for k, v in pairs(loaded) do
             self.data[k] = v
         end

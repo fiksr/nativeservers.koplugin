@@ -36,7 +36,7 @@ function NativeServers:onDispatcherRegisterActions()
     Dispatcher:registerAction("nativeservers", {
         category = "none",
         event = "ShowNativeServers",
-        title = _("🚀 Native Servers"),
+        title = _("Native Servers"),
         general = true,
     })
 end
@@ -44,7 +44,7 @@ end
 function NativeServers:onShowNativeServers()
     local Menu = require("ui/widget/menu")
     local menu = Menu:new{
-        title = _("🚀 Native Servers"),
+        title = _("Native Servers"),
         item_table = self:getSubMenuItems(),
         is_borderless = true,
     }
@@ -180,7 +180,7 @@ function NativeServers:getSubMenuItems()
                                 local ip = self_ref.manager:getDeviceIp()
                                 local port = self_ref.settings:get("web_port")
                                 UIManager:show(InfoMessage:new{
-                                    text = string.format(_("Web Manager is RUNNING!\n\n📱 Mobile Browser (Safari/Chrome):\nhttp://%s:%d/\n\n📁 iOS Files App:\nConnect to Server -> http://%s:%d/\n\n(Transfer books & edit code in browser!)"),
+                                    text = string.format(_("Web Manager is RUNNING!\n\n Mobile Browser (Safari/Chrome):\nhttp://%s:%d/\n\n iOS Files App:\nConnect to Server -> http://%s:%d/\n\n(Transfer books & edit code in browser!)"),
                                         ip, port, ip, port),
                                     timeout = 8,
                                 })

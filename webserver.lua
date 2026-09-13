@@ -23,8 +23,8 @@ end
 
 -- URL decoding
 local function urlDecode(str)
-    if not str then return "" end
-    str = str:gsub("+", " ")
+    if not str then return ""end
+    str = str:gsub("+", "")
     str = str:gsub("%%(%x%x)", function(h)
         return string.char(tonumber(h, 16))
     end)
@@ -33,12 +33,12 @@ end
 
 -- URL encoding
 local function urlEncode(str)
-    if not str then return "" end
+    if not str then return ""end
     str = str:gsub("\n", "\r\n")
     str = str:gsub("([^%w %-%_%.%~])", function(c)
         return string.format("%%%02X", string.byte(c))
     end)
-    str = str:gsub(" ", "+")
+    str = str:gsub("", "+")
     return str
 end
 
@@ -49,11 +49,11 @@ local function sanitizePath(base, req_path)
     req_path = req_path:match("^([^?]*)") or req_path
     -- Strip directory traversal
     req_path = req_path:gsub("%.%./", ""):gsub("/%.%.", ""):gsub("%.%.", "")
-    if not req_path:match("^/") then req_path = "/" .. req_path end
+    if not req_path:match("^/") then req_path = "/".. req_path end
 
     local full = base .. req_path
     full = full:gsub("//+", "/")
-    if #full > 1 and full:sub(-1) == "/" then
+    if #full > 1 and full:sub(-1) == "/"then
         full = full:sub(1, -2)
     end
     return full, req_path
@@ -62,7 +62,7 @@ end
 -- Format bytes into human-readable size
 local function formatSize(bytes)
     bytes = tonumber(bytes) or 0
-    if bytes < 1024 then return bytes .. " B" end
+    if bytes < 1024 then return bytes .. "B"end
     if bytes < 1024 * 1024 then return string.format("%.1f KB", bytes / 1024) end
     if bytes < 1024 * 1024 * 1024 then return string.format("%.1f MB", bytes / (1024 * 1024)) end
     return string.format("%.2f GB", bytes / (1024 * 1024 * 1024))
@@ -96,13 +96,13 @@ end
 
 local function generateMobileHtml(current_path, base_root)
     local rel_path = current_path:sub(#base_root + 1)
-    if rel_path == "" then rel_path = "/" end
+    if rel_path == ""then rel_path = "/"end
 
     -- Build parent path
     local parent_rel = "/"
-    if rel_path ~= "/" then
+    if rel_path ~= "/"then
         parent_rel = rel_path:match("^(.*)/[^/]+$") or "/"
-        if parent_rel == "" then parent_rel = "/" end
+        if parent_rel == ""then parent_rel = "/"end
     end
 
     -- Collect items in directory
@@ -111,16 +111,16 @@ local function generateMobileHtml(current_path, base_root)
 
     pcall(function()
         for entry in lfs.dir(current_path) do
-            if entry ~= "." and entry ~= ".." then
-                local full = current_path .. "/" .. entry
+            if entry ~= "."and entry ~= ".."then
+                local full = current_path .. "/".. entry
                 local mode = lfs.attributes(full, "mode")
                 local size = lfs.attributes(full, "size") or 0
                 local mtime = lfs.attributes(full, "modification") or 0
                 local time_str = os.date("%Y-%m-%d %H:%M", mtime)
 
-                if mode == "directory" then
+                if mode == "directory"then
                     table.insert(folders, { name = entry, time = time_str })
-                elseif mode == "file" then
+                elseif mode == "file"then
                     table.insert(files, {
                         name = entry,
                         size = formatSize(size),
@@ -139,30 +139,30 @@ local function generateMobileHtml(current_path, base_root)
 
     -- Generate rows
     local rows_html = {}
-    if rel_path ~= "/" then
+    if rel_path ~= "/"then
         table.insert(rows_html, string.format([[
-        <tr class="folder-row" onclick="location.href='/?path=%s'">
-            <td colspan="4"><strong>📁 ⬆️ .. (Up to Parent Folder)</strong></td>
+        <tr class="folder-row"onclick="location.href='/?path=%s'">
+            <td colspan="4"><strong> ️ .. (Up to Parent Folder)</strong></td>
         </tr>]], urlEncode(parent_rel)))
     end
 
     for _, f in ipairs(folders) do
-        local target = rel_path == "/" and ("/" .. f.name) or (rel_path .. "/" .. f.name)
+        local target = rel_path == "/"and ("/".. f.name) or (rel_path .. "/".. f.name)
         table.insert(rows_html, string.format([[
-        <tr class="folder-row" onclick="location.href='/?path=%s'">
-            <td>📁 <strong>%s/</strong></td>
+        <tr class="folder-row"onclick="location.href='/?path=%s'">
+            <td> <strong>%s/</strong></td>
             <td>Folder</td>
             <td>%s</td>
-            <td class="actions" onclick="event.stopPropagation()">
-                <button class="btn btn-sm btn-danger" onclick="deleteItem('%s', true)">Delete</button>
+            <td class="actions"onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-danger"onclick="deleteItem('%s', true)">Delete</button>
             </td>
         </tr>]], urlEncode(target), f.name, f.time, urlEncode(target)))
     end
 
     for _, f in ipairs(files) do
-        local file_rel = rel_path == "/" and ("/" .. f.name) or (rel_path .. "/" .. f.name)
-        local icon = f.book and "📖 " or (f.editable and "💻 " or "📄 ")
-        local edit_btn = f.editable and string.format([[<button class="btn btn-sm btn-primary" onclick="openEditor('%s', '%s')">✏️ Edit</button> ]], urlEncode(file_rel), f.name) or ""
+        local file_rel = rel_path == "/"and ("/".. f.name) or (rel_path .. "/".. f.name)
+        local icon = f.book and ""or (f.editable and ""or "")
+        local edit_btn = f.editable and string.format([[<button class="btn btn-sm btn-primary"onclick="openEditor('%s', '%s')">️ Edit</button> ]], urlEncode(file_rel), f.name) or ""
 
         table.insert(rows_html, string.format([[
         <tr>
@@ -171,8 +171,8 @@ local function generateMobileHtml(current_path, base_root)
             <td>%s</td>
             <td class="actions">
                 %s
-                <a class="btn btn-sm btn-secondary" href="/download?path=%s" download>⬇️ Get</a>
-                <button class="btn btn-sm btn-danger" onclick="deleteItem('%s', false)">🗑️</button>
+                <a class="btn btn-sm btn-secondary"href="/download?path=%s"download>️ Get</a>
+                <button class="btn btn-sm btn-danger"onclick="deleteItem('%s', false)">️</button>
             </td>
         </tr>]], icon, f.name, f.size, f.time, edit_btn, urlEncode(file_rel), urlEncode(file_rel)))
     end
@@ -181,7 +181,7 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport"content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Kindle File Manager & Code Editor</title>
 <style>
   :root { --bg: #121212; --card: #1e1e1e; --text: #f0f0f0; --dim: #a0a0a0; --accent: #3b82f6; --accent-hover: #2563eb; --border: #333; --danger: #ef4444; }
@@ -225,19 +225,19 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
 </div>
 
 <div class="upload-box">
-  <form id="uploadForm" onsubmit="uploadFiles(event)">
-    <p style="margin-bottom: 8px; font-weight: 600;">📥 Transfer Books / Files into this folder</p>
-    <input type="file" id="fileInput" multiple style="margin-bottom: 10px; color: var(--dim);">
+  <form id="uploadForm"onsubmit="uploadFiles(event)">
+    <p style="margin-bottom: 8px; font-weight: 600;"> Transfer Books / Files into this folder</p>
+    <input type="file"id="fileInput"multiple style="margin-bottom: 10px; color: var(--dim);">
     <br>
-    <button type="submit" class="btn btn-primary">⚡ Send to Kindle (Full Wi-Fi Speed)</button>
+    <button type="submit"class="btn btn-primary"> Send to Kindle (Full Wi-Fi Speed)</button>
   </form>
-  <div id="uploadProgress" style="display:none; margin-top: 10px; font-weight: bold; color: var(--accent);">Uploading...</div>
+  <div id="uploadProgress"style="display:none; margin-top: 10px; font-weight: bold; color: var(--accent);">Uploading...</div>
 </div>
 
 <div class="toolbar">
-  <div class="breadcrumb">📂 Path: <strong>{{CURRENT_PATH}}</strong></div>
+  <div class="breadcrumb"> Path: <strong>{{CURRENT_PATH}}</strong></div>
   <div>
-    <button class="btn btn-secondary btn-sm" onclick="createNewFolder()">➕ New Folder</button>
+    <button class="btn btn-secondary btn-sm"onclick="createNewFolder()"> New Folder</button>
   </div>
 </div>
 
@@ -256,19 +256,19 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
 </table>
 
 <!-- CODE EDITOR MODAL -->
-<div id="editorModal" class="modal">
+<div id="editorModal"class="modal">
   <div class="modal-content">
     <div class="modal-header">
       <h3 id="editorTitle">Editing file</h3>
-      <span id="saveStatus" style="font-size: 0.8rem; color: #10b981; margin-left: 12px;"></span>
-      <button class="btn btn-sm btn-secondary" onclick="closeEditor()">✕ Close</button>
+      <span id="saveStatus"style="font-size: 0.8rem; color: #10b981; margin-left: 12px;"></span>
+      <button class="btn btn-sm btn-secondary"onclick="closeEditor()"> Close</button>
     </div>
     <div class="modal-body">
-      <textarea id="editorText" spellcheck="false"></textarea>
+      <textarea id="editorText"spellcheck="false"></textarea>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeEditor()">Cancel</button>
-      <button class="btn btn-primary" id="saveBtn" onclick="saveEditorContent()">💾 Save to Kindle</button>
+      <button class="btn btn-secondary"onclick="closeEditor()">Cancel</button>
+      <button class="btn btn-primary"id="saveBtn"onclick="saveEditorContent()"> Save to Kindle</button>
     </div>
   </div>
 </div>
@@ -287,7 +287,7 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
 
   async function openEditor(path, name) {
     currentEditingPath = path;
-    document.getElementById('editorTitle').innerText = "✏️ " + name;
+    document.getElementById('editorTitle').innerText = "️ "+ name;
     document.getElementById('saveStatus').innerText = "Loading...";
     document.getElementById('editorModal').style.display = 'flex';
 
@@ -298,7 +298,7 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
       document.getElementById('editorText').value = text;
       document.getElementById('saveStatus').innerText = "";
     } catch (e) {
-      alert("Error loading file: " + e.message);
+      alert("Error loading file: "+ e.message);
       closeEditor();
     }
   }
@@ -325,11 +325,11 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
       });
 
       if (!res.ok) throw new Error("Failed to save file.");
-      status.innerText = "✓ Saved!";
+      status.innerText = "Saved!";
       showToast("File saved successfully!");
       setTimeout(() => { status.innerText = ""; }, 2000);
     } catch (e) {
-      alert("Error saving: " + e.message);
+      alert("Error saving: "+ e.message);
       status.innerText = "Save failed!";
     } finally {
       btn.disabled = false;
@@ -347,7 +347,7 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       p.innerText = `Uploading (${i+1}/${files.length}): ${file.name}...`;
-      const targetPath = "{{CURRENT_PATH}}/" + file.name;
+      const targetPath = "{{CURRENT_PATH}}/"+ file.name;
 
       await fetch('/api/upload?path=' + encodeURIComponent(targetPath), {
         method: 'POST',
@@ -361,14 +361,14 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
   }
 
   async function deleteItem(path, isDir) {
-    if (!confirm("Are you sure you want to delete this " + (isDir ? "folder" : "file") + "?")) return;
+    if (!confirm("Are you sure you want to delete this "+ (isDir ? "folder": "file") + "?")) return;
     try {
       const res = await fetch('/api/delete?path=' + encodeURIComponent(path), { method: 'POST' });
       if (!res.ok) throw new Error("Delete failed");
       showToast("Deleted successfully.");
       location.reload();
     } catch(e) {
-      alert("Error: " + e.message);
+      alert("Error: "+ e.message);
     }
   }
 
@@ -376,13 +376,13 @@ local HTML_TEMPLATE = [[<!DOCTYPE html>
     const name = prompt("Enter new folder name:");
     if (!name) return;
     const base = "{{CURRENT_PATH}}";
-    const target = (base === "/" ? "" : base) + "/" + name;
+    const target = (base === "/"? "": base) + "/"+ name;
     try {
       const res = await fetch('/api/mkdir?path=' + encodeURIComponent(target), { method: 'POST' });
       if (!res.ok) throw new Error("Could not create folder");
       location.reload();
     } catch(e) {
-      alert("Error: " + e.message);
+      alert("Error: "+ e.message);
     }
   }
 </script>
@@ -408,11 +408,11 @@ local function generateWebDavPropfind(current_path, base_root, depth)
     end
 
     local rel_base = current_path:sub(#base_root + 1)
-    if rel_base == "" then rel_base = "/" end
+    if rel_base == ""then rel_base = "/"end
 
     local responses = {}
 
-    if target_mode == "file" then
+    if target_mode == "file"then
         local size = lfs.attributes(current_path, "size") or 0
         local name = rel_base:match("([^/]+)$") or "file"
         table.insert(responses, string.format([[
@@ -429,8 +429,8 @@ local function generateWebDavPropfind(current_path, base_root, depth)
   </D:response>]], rel_base, name, size))
     else
         -- Collection / directory
-        if rel_base:sub(-1) ~= "/" then rel_base = rel_base .. "/" end
-        local dir_name = rel_base == "/" and "Kindle Storage" or (rel_base:match("([^/]+)/$") or "folder")
+        if rel_base:sub(-1) ~= "/"then rel_base = rel_base .. "/"end
+        local dir_name = rel_base == "/"and "Kindle Storage"or (rel_base:match("([^/]+)/$") or "folder")
         table.insert(responses, string.format([[
   <D:response>
     <D:href>%s</D:href>
@@ -444,16 +444,16 @@ local function generateWebDavPropfind(current_path, base_root, depth)
   </D:response>]], rel_base, dir_name))
 
         -- Children if depth > 0
-        if depth ~= "0" then
+        if depth ~= "0"then
             pcall(function()
                 for entry in lfs.dir(current_path) do
-                    if entry ~= "." and entry ~= ".." then
-                        local full = current_path .. "/" .. entry
+                    if entry ~= "."and entry ~= ".."then
+                        local full = current_path .. "/".. entry
                         local mode = lfs.attributes(full, "mode")
                         local size = lfs.attributes(full, "size") or 0
                         local href = rel_base .. urlEncode(entry)
 
-                        if mode == "directory" then
+                        if mode == "directory"then
                             table.insert(responses, string.format([[
   <D:response>
     <D:href>%s/</D:href>
@@ -465,7 +465,7 @@ local function generateWebDavPropfind(current_path, base_root, depth)
       <D:status>HTTP/1.1 200 OK</D:status>
     </D:propstat>
   </D:response>]], href, entry))
-                        elseif mode == "file" then
+                        elseif mode == "file"then
                             table.insert(responses, string.format([[
   <D:response>
     <D:href>%s</D:href>
@@ -485,7 +485,7 @@ local function generateWebDavPropfind(current_path, base_root, depth)
         end
     end
 
-    return string.format([[<?xml version="1.0" encoding="utf-8" ?>
+    return string.format([[<?xml version="1.0"encoding="utf-8"?>
 <D:multistatus xmlns:D="DAV:">
 %s
 </D:multistatus>]], table.concat(responses, "\n"))
@@ -506,7 +506,7 @@ function WebServer:handleClient(client)
     local headers = {}
     while true do
         local hline = client:receive("*l")
-        if not hline or hline == "" then break end
+        if not hline or hline == ""then break end
         local k, v = hline:match("^([^:]+):%s*(.*)$")
         if k and v then
             headers[k:lower()] = v
@@ -524,38 +524,38 @@ function WebServer:handleClient(client)
     end
 
     -- 1. WEBDAV OPTIONS (Queried by iOS Files App & Windows Explorer)
-    if method == "OPTIONS" then
-        client:send("HTTP/1.1 200 OK\r\n" ..
-                    "DAV: 1, 2\r\n" ..
-                    "MS-Author-Via: DAV\r\n" ..
-                    "Allow: OPTIONS, GET, HEAD, POST, PUT, DELETE, PROPFIND, MKCOL, MOVE, COPY\r\n" ..
-                    "Content-Length: 0\r\n" ..
+    if method == "OPTIONS"then
+        client:send("HTTP/1.1 200 OK\r\n"..
+                    "DAV: 1, 2\r\n"..
+                    "MS-Author-Via: DAV\r\n"..
+                    "Allow: OPTIONS, GET, HEAD, POST, PUT, DELETE, PROPFIND, MKCOL, MOVE, COPY\r\n"..
+                    "Content-Length: 0\r\n"..
                     "Connection: close\r\n\r\n")
         return
     end
 
     -- 2. WEBDAV PROPFIND (Directory listing for iOS Files / Windows Drive)
-    if method == "PROPFIND" then
+    if method == "PROPFIND"then
         local depth = headers["depth"] or "1"
         local xml = generateWebDavPropfind(full_path, base_root, depth)
         if not xml then
             client:send("HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found")
             return
         end
-        client:send("HTTP/1.1 207 Multi-Status\r\n" ..
-                    "Content-Type: application/xml; charset=utf-8\r\n" ..
-                    "Content-Length: " .. #xml .. "\r\n" ..
-                    "Connection: close\r\n\r\n" .. xml)
+        client:send("HTTP/1.1 207 Multi-Status\r\n"..
+                    "Content-Type: application/xml; charset=utf-8\r\n"..
+                    "Content-Length: ".. #xml .. "\r\n"..
+                    "Connection: close\r\n\r\n".. xml)
         return
     end
 
     -- 3. API: Read file text for live code editing
-    if method == "GET" and raw_uri:match("^/api/read") then
+    if method == "GET"and raw_uri:match("^/api/read") then
         local f = io.open(full_path, "r")
         if f then
             local content = f:read("*a") or ""
             f:close()
-            client:send("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: " .. #content .. "\r\nConnection: close\r\n\r\n" .. content)
+            client:send("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: ".. #content .. "\r\nConnection: close\r\n\r\n".. content)
         else
             client:send("HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found")
         end
@@ -563,7 +563,7 @@ function WebServer:handleClient(client)
     end
 
     -- 4. API: Save edited file text
-    if method == "POST" and raw_uri:match("^/api/save") then
+    if method == "POST"and raw_uri:match("^/api/save") then
         local len = tonumber(headers["content-length"]) or 0
         local body = ""
         if len > 0 then
@@ -581,7 +581,7 @@ function WebServer:handleClient(client)
     end
 
     -- 5. API: Upload binary book/file (or WebDAV PUT)
-    if (method == "POST" and raw_uri:match("^/api/upload")) or method == "PUT" then
+    if (method == "POST"and raw_uri:match("^/api/upload")) or method == "PUT"then
         local len = tonumber(headers["content-length"]) or 0
         local f = io.open(full_path, "wb")
         if not f then
@@ -600,15 +600,15 @@ function WebServer:handleClient(client)
         end
         f:close()
 
-        local status_code = (method == "PUT") and "201 Created" or "200 OK"
-        client:send("HTTP/1.1 " .. status_code .. "\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
+        local status_code = (method == "PUT") and "201 Created"or "200 OK"
+        client:send("HTTP/1.1 ".. status_code .. "\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
         return
     end
 
     -- 6. API: Delete item (or WebDAV DELETE)
-    if (method == "POST" and raw_uri:match("^/api/delete")) or method == "DELETE" then
+    if (method == "POST"and raw_uri:match("^/api/delete")) or method == "DELETE"then
         local mode = lfs.attributes(full_path, "mode")
-        if mode == "directory" then
+        if mode == "directory"then
             pcall(lfs.rmdir, full_path)
         else
             pcall(os.remove, full_path)
@@ -618,21 +618,21 @@ function WebServer:handleClient(client)
     end
 
     -- 7. API: Create folder (or WebDAV MKCOL)
-    if (method == "POST" and raw_uri:match("^/api/mkdir")) or method == "MKCOL" then
+    if (method == "POST"and raw_uri:match("^/api/mkdir")) or method == "MKCOL"then
         local mode = lfs.attributes(full_path, "mode")
         if mode then
-            local code = (method == "MKCOL") and "405 Method Not Allowed" or "400 Bad Request"
-            client:send("HTTP/1.1 " .. code .. "\r\nContent-Length: 14\r\nConnection: close\r\n\r\nAlready exists")
+            local code = (method == "MKCOL") and "405 Method Not Allowed"or "400 Bad Request"
+            client:send("HTTP/1.1 ".. code .. "\r\nContent-Length: 14\r\nConnection: close\r\n\r\nAlready exists")
             return
         end
         local ok, err = pcall(lfs.mkdir, full_path)
-        local status_code = ok and ((method == "MKCOL") and "201 Created" or "200 OK") or "500 Internal Server Error"
-        client:send("HTTP/1.1 " .. status_code .. "\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
+        local status_code = ok and ((method == "MKCOL") and "201 Created"or "200 OK") or "500 Internal Server Error"
+        client:send("HTTP/1.1 ".. status_code .. "\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
         return
     end
 
     -- 8. Download binary file
-    if method == "GET" and (raw_uri:match("^/download") or lfs.attributes(full_path, "mode") == "file") then
+    if method == "GET"and (raw_uri:match("^/download") or lfs.attributes(full_path, "mode") == "file") then
         local f = io.open(full_path, "rb")
         if not f then
             client:send("HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found")
@@ -653,9 +653,9 @@ function WebServer:handleClient(client)
 
     -- 9. Mobile Web App Interface (Home / Folder Browser)
     local mode = lfs.attributes(full_path, "mode")
-    if mode == "directory" then
+    if mode == "directory"then
         local html = generateMobileHtml(full_path, base_root)
-        client:send("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: " .. #html .. "\r\nConnection: close\r\n\r\n" .. html)
+        client:send("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ".. #html .. "\r\nConnection: close\r\n\r\n".. html)
         return
     end
 
@@ -720,8 +720,8 @@ function WebServer:processClient(client)
     end)
     if not ok and err then
         pcall(function()
-            local msg = "500 Internal Server Error\n\n" .. tostring(err)
-            client:send("HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nContent-Length: " .. #msg .. "\r\nConnection: close\r\n\r\n" .. msg)
+            local msg = "500 Internal Server Error\n\n".. tostring(err)
+            client:send("HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nContent-Length: ".. #msg .. "\r\nConnection: close\r\n\r\n".. msg)
         end)
     end
     pcall(function() client:close() end)
