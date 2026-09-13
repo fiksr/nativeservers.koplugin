@@ -36,7 +36,7 @@ function NativeServers:onDispatcherRegisterActions()
     Dispatcher:registerAction("nativeservers", {
         category = "none",
         event = "ShowNativeServers",
-        title = _("Native Servers"),
+        title = _("🚀 Native Servers"),
         general = true,
     })
 end
@@ -44,7 +44,7 @@ end
 function NativeServers:onShowNativeServers()
     local Menu = require("ui/widget/menu")
     local menu = Menu:new{
-        title = _("Native Servers"),
+        title = _("🚀 Native Servers"),
         item_table = self:getSubMenuItems(),
         is_borderless = true,
     }
