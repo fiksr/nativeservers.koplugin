@@ -6,6 +6,7 @@ and native USBNetwork SSH / SFTP daemon (Dropbear).
 
 local _ = require("gettext")
 local Device = require("device")
+local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
@@ -29,6 +30,26 @@ local NativeServers = WidgetContainer:extend{
     name = "nativeservers",
     is_doc_only = false,
 }
+
+
+function NativeServers:onDispatcherRegisterActions()
+    Dispatcher:registerAction("nativeservers", {
+        category = "none",
+        event = "ShowNativeServers",
+        title = _("Native Servers"),
+        general = true,
+    })
+end
+
+function NativeServers:onShowNativeServers()
+    local Menu = require("ui/widget/menu")
+    local menu = Menu:new{
+        title = _("Native Servers"),
+        item_table = self:getSubMenuItems(),
+        is_borderless = true,
+    }
+    UIManager:show(menu)
+end
 
 function NativeServers:init()
     if self.ui and self.ui.menu then
