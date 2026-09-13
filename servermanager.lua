@@ -112,6 +112,9 @@ end
 -- Locate native Dropbear binary on Kindle
 function ServerManager:findDropbear()
     local candidates = {
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbearmulti",
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbear",
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/sbin/dropbear",
         "/mnt/us/usbnetlite/bin/dropbearmulti",
         "/mnt/us/usbnetlite/bin/dropbear",
         "/mnt/us/usbnet/bin/dropbearmulti",
@@ -132,9 +135,11 @@ function ServerManager:findDropbear()
     return nil
 end
 
--- Read saved SSH password if present (from dropbear-ssh / usbnetlite)
+-- Read saved SSH password if present (from dropbear-ssh / usbnetlite / kpm)
 function ServerManager:getSshPassword()
     local pass_paths = {
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/etc/ssh_password",
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/config/password",
         "/mnt/us/usbnetlite/etc/ssh_password",
         "/mnt/us/usbnet/etc/ssh_password",
     }
