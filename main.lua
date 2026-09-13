@@ -117,8 +117,7 @@ function NativeServers:addToMainMenu(menu_items)
         text = _("Wireless File Manager & Servers"),
         sorting_hint = "more_tools",
         sub_item_table = self:getSubMenuItems(),
-    }
-end
+    } end
 
 function NativeServers:getSubMenuItems()
     local self_ref = self
@@ -130,8 +129,7 @@ function NativeServers:getSubMenuItems()
                 help_text = _("Check settings.lua, servermanager.lua, and webserver.lua in nativeservers.koplugin/"),
                 enabled = false,
             },
-        }
-    end
+        } end
 
     return {
         -- Status & Network Summary
@@ -444,7 +442,6 @@ function NativeServers:getSubMenuItems()
                 },
             },
         },
-    }
-end
+    } end
 
 return NativeServers

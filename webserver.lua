@@ -23,7 +23,7 @@ end
 
 -- URL decoding
 local function urlDecode(str)
-    if not str then return ""end
+    if not str then return "" end
     str = str:gsub("+", "")
     str = str:gsub("%%(%x%x)", function(h)
         return string.char(tonumber(h, 16))
@@ -33,7 +33,7 @@ end
 
 -- URL encoding
 local function urlEncode(str)
-    if not str then return ""end
+    if not str then return "" end
     str = str:gsub("\n", "\r\n")
     str = str:gsub("([^%w %-%_%.%~])", function(c)
         return string.format("%%%02X", string.byte(c))
@@ -53,7 +53,7 @@ local function sanitizePath(base, req_path)
 
     local full = base .. req_path
     full = full:gsub("//+", "/")
-    if #full > 1 and full:sub(-1) == "/"then
+    if #full > 1 and full:sub(-1) == "/" then
         full = full:sub(1, -2)
     end
     return full, req_path
@@ -62,7 +62,7 @@ end
 -- Format bytes into human-readable size
 local function formatSize(bytes)
     bytes = tonumber(bytes) or 0
-    if bytes < 1024 then return bytes .. "B"end
+    if bytes < 1024 then return bytes .. "B" end
     if bytes < 1024 * 1024 then return string.format("%.1f KB", bytes / 1024) end
     if bytes < 1024 * 1024 * 1024 then return string.format("%.1f MB", bytes / (1024 * 1024)) end
     return string.format("%.2f GB", bytes / (1024 * 1024 * 1024))
@@ -96,13 +96,13 @@ end
 
 local function generateMobileHtml(current_path, base_root)
     local rel_path = current_path:sub(#base_root + 1)
-    if rel_path == ""then rel_path = "/"end
+    if rel_path == "" then rel_path = "/" end
 
     -- Build parent path
     local parent_rel = "/"
-    if rel_path ~= "/"then
+    if rel_path ~= "/" then
         parent_rel = rel_path:match("^(.*)/[^/]+$") or "/"
-        if parent_rel == ""then parent_rel = "/"end
+        if parent_rel == "" then parent_rel = "/" end
     end
 
     -- Collect items in directory
@@ -111,16 +111,16 @@ local function generateMobileHtml(current_path, base_root)
 
     pcall(function()
         for entry in lfs.dir(current_path) do
-            if entry ~= "."and entry ~= ".."then
+            if entry ~= "." and entry ~= ".." then
                 local full = current_path .. "/".. entry
                 local mode = lfs.attributes(full, "mode")
                 local size = lfs.attributes(full, "size") or 0
                 local mtime = lfs.attributes(full, "modification") or 0
                 local time_str = os.date("%Y-%m-%d %H:%M", mtime)
 
-                if mode == "directory"then
+                if mode == "directory" then
                     table.insert(folders, { name = entry, time = time_str })
-                elseif mode == "file"then
+                elseif mode == "file" then
                     table.insert(files, {
                         name = entry,
                         size = formatSize(size),
@@ -139,7 +139,7 @@ local function generateMobileHtml(current_path, base_root)
 
     -- Generate rows
     local rows_html = {}
-    if rel_path ~= "/"then
+    if rel_path ~= "/" then
         table.insert(rows_html, string.format([[
         <tr class="folder-row"onclick="location.href='/?path=%s'">
             <td colspan="4"><strong> ️ .. (Up to Parent Folder)</strong></td>
@@ -147,7 +147,7 @@ local function generateMobileHtml(current_path, base_root)
     end
 
     for _, f in ipairs(folders) do
-        local target = rel_path == "/"and ("/".. f.name) or (rel_path .. "/".. f.name)
+        local target = rel_path == "/" and ("/".. f.name) or (rel_path .. "/".. f.name)
         table.insert(rows_html, string.format([[
         <tr class="folder-row"onclick="location.href='/?path=%s'">
             <td> <strong>%s/</strong></td>
@@ -160,8 +160,8 @@ local function generateMobileHtml(current_path, base_root)
     end
 
     for _, f in ipairs(files) do
-        local file_rel = rel_path == "/"and ("/".. f.name) or (rel_path .. "/".. f.name)
-        local icon = f.book and ""or (f.editable and ""or "")
+        local file_rel = rel_path == "/" and ("/".. f.name) or (rel_path .. "/".. f.name)
+        local icon = f.book and "" or (f.editable and "" or "")
         local edit_btn = f.editable and string.format([[<button class="btn btn-sm btn-primary"onclick="openEditor('%s', '%s')">️ Edit</button> ]], urlEncode(file_rel), f.name) or ""
 
         table.insert(rows_html, string.format([[
@@ -408,11 +408,11 @@ local function generateWebDavPropfind(current_path, base_root, depth)
     end
 
     local rel_base = current_path:sub(#base_root + 1)
-    if rel_base == ""then rel_base = "/"end
+    if rel_base == "" then rel_base = "/" end
 
     local responses = {}
 
-    if target_mode == "file"then
+    if target_mode == "file" then
         local size = lfs.attributes(current_path, "size") or 0
         local name = rel_base:match("([^/]+)$") or "file"
         table.insert(responses, string.format([[
@@ -429,8 +429,8 @@ local function generateWebDavPropfind(current_path, base_root, depth)
   </D:response>]], rel_base, name, size))
     else
         -- Collection / directory
-        if rel_base:sub(-1) ~= "/"then rel_base = rel_base .. "/"end
-        local dir_name = rel_base == "/"and "Kindle Storage"or (rel_base:match("([^/]+)/$") or "folder")
+        if rel_base:sub(-1) ~= "/" then rel_base = rel_base .. "/" end
+        local dir_name = rel_base == "/" and "Kindle Storage" or (rel_base:match("([^/]+)/$") or "folder")
         table.insert(responses, string.format([[
   <D:response>
     <D:href>%s</D:href>
@@ -444,16 +444,16 @@ local function generateWebDavPropfind(current_path, base_root, depth)
   </D:response>]], rel_base, dir_name))
 
         -- Children if depth > 0
-        if depth ~= "0"then
+        if depth ~= "0" then
             pcall(function()
                 for entry in lfs.dir(current_path) do
-                    if entry ~= "."and entry ~= ".."then
+                    if entry ~= "." and entry ~= ".." then
                         local full = current_path .. "/".. entry
                         local mode = lfs.attributes(full, "mode")
                         local size = lfs.attributes(full, "size") or 0
                         local href = rel_base .. urlEncode(entry)
 
-                        if mode == "directory"then
+                        if mode == "directory" then
                             table.insert(responses, string.format([[
   <D:response>
     <D:href>%s/</D:href>
@@ -465,7 +465,7 @@ local function generateWebDavPropfind(current_path, base_root, depth)
       <D:status>HTTP/1.1 200 OK</D:status>
     </D:propstat>
   </D:response>]], href, entry))
-                        elseif mode == "file"then
+                        elseif mode == "file" then
                             table.insert(responses, string.format([[
   <D:response>
     <D:href>%s</D:href>
@@ -506,7 +506,7 @@ function WebServer:handleClient(client)
     local headers = {}
     while true do
         local hline = client:receive("*l")
-        if not hline or hline == ""then break end
+        if not hline or hline == "" then break end
         local k, v = hline:match("^([^:]+):%s*(.*)$")
         if k and v then
             headers[k:lower()] = v
@@ -524,7 +524,7 @@ function WebServer:handleClient(client)
     end
 
     -- 1. WEBDAV OPTIONS (Queried by iOS Files App & Windows Explorer)
-    if method == "OPTIONS"then
+    if method == "OPTIONS" then
         client:send("HTTP/1.1 200 OK\r\n"..
                     "DAV: 1, 2\r\n"..
                     "MS-Author-Via: DAV\r\n"..
@@ -535,7 +535,7 @@ function WebServer:handleClient(client)
     end
 
     -- 2. WEBDAV PROPFIND (Directory listing for iOS Files / Windows Drive)
-    if method == "PROPFIND"then
+    if method == "PROPFIND" then
         local depth = headers["depth"] or "1"
         local xml = generateWebDavPropfind(full_path, base_root, depth)
         if not xml then
@@ -550,7 +550,7 @@ function WebServer:handleClient(client)
     end
 
     -- 3. API: Read file text for live code editing
-    if method == "GET"and raw_uri:match("^/api/read") then
+    if method == "GET" and raw_uri:match("^/api/read") then
         local f = io.open(full_path, "r")
         if f then
             local content = f:read("*a") or ""
@@ -563,7 +563,7 @@ function WebServer:handleClient(client)
     end
 
     -- 4. API: Save edited file text
-    if method == "POST"and raw_uri:match("^/api/save") then
+    if method == "POST" and raw_uri:match("^/api/save") then
         local len = tonumber(headers["content-length"]) or 0
         local body = ""
         if len > 0 then
@@ -581,7 +581,7 @@ function WebServer:handleClient(client)
     end
 
     -- 5. API: Upload binary book/file (or WebDAV PUT)
-    if (method == "POST"and raw_uri:match("^/api/upload")) or method == "PUT"then
+    if (method == "POST" and raw_uri:match("^/api/upload")) or method == "PUT" then
         local len = tonumber(headers["content-length"]) or 0
         local f = io.open(full_path, "wb")
         if not f then
@@ -600,15 +600,15 @@ function WebServer:handleClient(client)
         end
         f:close()
 
-        local status_code = (method == "PUT") and "201 Created"or "200 OK"
+        local status_code = (method == "PUT") and "201 Created" or "200 OK"
         client:send("HTTP/1.1 ".. status_code .. "\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
         return
     end
 
     -- 6. API: Delete item (or WebDAV DELETE)
-    if (method == "POST"and raw_uri:match("^/api/delete")) or method == "DELETE"then
+    if (method == "POST" and raw_uri:match("^/api/delete")) or method == "DELETE" then
         local mode = lfs.attributes(full_path, "mode")
-        if mode == "directory"then
+        if mode == "directory" then
             pcall(lfs.rmdir, full_path)
         else
             pcall(os.remove, full_path)
@@ -618,21 +618,21 @@ function WebServer:handleClient(client)
     end
 
     -- 7. API: Create folder (or WebDAV MKCOL)
-    if (method == "POST"and raw_uri:match("^/api/mkdir")) or method == "MKCOL"then
+    if (method == "POST" and raw_uri:match("^/api/mkdir")) or method == "MKCOL" then
         local mode = lfs.attributes(full_path, "mode")
         if mode then
-            local code = (method == "MKCOL") and "405 Method Not Allowed"or "400 Bad Request"
+            local code = (method == "MKCOL") and "405 Method Not Allowed" or "400 Bad Request"
             client:send("HTTP/1.1 ".. code .. "\r\nContent-Length: 14\r\nConnection: close\r\n\r\nAlready exists")
             return
         end
         local ok, err = pcall(lfs.mkdir, full_path)
-        local status_code = ok and ((method == "MKCOL") and "201 Created"or "200 OK") or "500 Internal Server Error"
+        local status_code = ok and ((method == "MKCOL") and "201 Created" or "200 OK") or "500 Internal Server Error"
         client:send("HTTP/1.1 ".. status_code .. "\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
         return
     end
 
     -- 8. Download binary file
-    if method == "GET"and (raw_uri:match("^/download") or lfs.attributes(full_path, "mode") == "file") then
+    if method == "GET" and (raw_uri:match("^/download") or lfs.attributes(full_path, "mode") == "file") then
         local f = io.open(full_path, "rb")
         if not f then
             client:send("HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found")
@@ -653,7 +653,7 @@ function WebServer:handleClient(client)
 
     -- 9. Mobile Web App Interface (Home / Folder Browser)
     local mode = lfs.attributes(full_path, "mode")
-    if mode == "directory"then
+    if mode == "directory" then
         local html = generateMobileHtml(full_path, base_root)
         client:send("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: ".. #html .. "\r\nConnection: close\r\n\r\n".. html)
         return

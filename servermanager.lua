@@ -36,14 +36,14 @@ function ServerManager:getDeviceIp()
         if ok and ni and ni.retrieve then
             local interfaces = ni:retrieve()
             for _, iface in ipairs(interfaces) do
-                if iface.ipv4 and iface.name ~= "lo"and (iface.name:match("^wl") or iface.name:match("^wlan")) then
+                if iface.ipv4 and iface.name ~= "lo" and (iface.name:match("^wl") or iface.name:match("^wlan")) then
                     local ip = iface.ipv4
                     pcall(function() ni:free() end)
                     return ip
                 end
             end
             for _, iface in ipairs(interfaces) do
-                if iface.ipv4 and iface.name ~= "lo"then
+                if iface.ipv4 and iface.name ~= "lo" then
                     local ip = iface.ipv4
                     pcall(function() ni:free() end)
                     return ip
@@ -234,7 +234,7 @@ function ServerManager:startSsh()
 
         local pass = self:getSshPassword()
         local pass_arg = (pass and #pass > 0) and string.format("-Y '%s'", pass) or ""
-        local pid_file = dropbear:match("usbnetlite") and "/mnt/us/usbnetlite/etc/dropbear.pid"or self.ssh_pid_file
+        local pid_file = dropbear:match("usbnetlite") and "/mnt/us/usbnetlite/etc/dropbear.pid" or self.ssh_pid_file
 
         local cmd = string.format("%ssetsid %s -R -p 0.0.0.0:%d %s -K 60 -I 1800 -P %s </dev/null >/tmp/dropbear_run.log 2>&1 &",
             lib_env, run_cmd, port, pass_arg, pid_file)
