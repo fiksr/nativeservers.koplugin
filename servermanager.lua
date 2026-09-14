@@ -83,7 +83,7 @@ function ServerManager:isPidRunning(pid_file)
     end
 
     -- Direct /proc/<pid> check on Linux (fastest and 100% reliable)
-    if fileExists("/proc/".. pid) then
+    if fileExists("/proc/" .. pid) then
         return true, pid
     end
 
@@ -94,10 +94,10 @@ end
 function ServerManager:openFirewallPort(port)
     if not port or port <= 0 then return end
     self:closeFirewallPort(port)
-    os.execute(string.format("iptables -I INPUT 1 -p tcp --dport %d -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT 2>/dev/null", port))
-    os.execute(string.format("iptables -I OUTPUT 1 -p tcp --sport %d -m conntrack --ctstate ESTABLISHED -j ACCEPT 2>/dev/null", port))
     os.execute(string.format("iptables -I INPUT 1 -p tcp --dport %d -j ACCEPT 2>/dev/null", port))
     os.execute(string.format("iptables -I OUTPUT 1 -p tcp --sport %d -j ACCEPT 2>/dev/null", port))
+    os.execute(string.format("iptables -I INPUT 1 -p tcp --dport %d -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT 2>/dev/null", port))
+    os.execute(string.format("iptables -I OUTPUT 1 -p tcp --sport %d -m conntrack --ctstate ESTABLISHED -j ACCEPT 2>/dev/null", port))
 end
 
 -- Close hole in Kindle's iptables firewall for a port
@@ -109,6 +109,54 @@ function ServerManager:closeFirewallPort(port)
     os.execute(string.format("iptables -D OUTPUT -p tcp --sport %d -j ACCEPT 2>/dev/null", port))
 end
 
+-- Ensure host key exists or generate one on writable path
+function ServerManager:ensureHostKey()
+    local hostkey_candidates = {
+        "/mnt/us/usbnet/etc/dropbear_rsa_host_key",
+        "/mnt/base-us/usbnet/etc/dropbear_rsa_host_key",
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/etc/dropbear_rsa_host_key",
+        "/mnt/base-us/kmc/kpm/packages/dropbear-ssh/etc/dropbear_rsa_host_key",
+        "/mnt/us/usbnetlite/etc/dropbear_rsa_host_key",
+        "/mnt/base-us/usbnetlite/etc/dropbear_rsa_host_key",
+        "/mnt/us/koreader/settings/SSH/dropbear_rsa_host_key",
+        "/mnt/base-us/koreader/settings/SSH/dropbear_rsa_host_key",
+        "/tmp/dropbear_rsa_host_key",
+        "/etc/dropbear/dropbear_rsa_host_key",
+    }
+    for _, path in ipairs(hostkey_candidates) do
+        if fileExists(path) then
+            return path
+        end
+    end
+
+    -- Try generating a host key in /tmp/dropbear_rsa_host_key using dropbearkey
+    local keygen_candidates = {
+        "./dropbearkey",
+        "/mnt/us/koreader/dropbearkey",
+        "/mnt/base-us/koreader/dropbearkey",
+        "/mnt/us/usbnet/bin/dropbearkey",
+        "/mnt/base-us/usbnet/bin/dropbearkey",
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbearkey",
+        "/mnt/base-us/kmc/kpm/packages/dropbear-ssh/bin/dropbearkey",
+        "/mnt/us/usbnetlite/bin/dropbearkey",
+        "/mnt/base-us/usbnetlite/bin/dropbearkey",
+        "/usr/bin/dropbearkey",
+        "/usr/sbin/dropbearkey",
+        "dropbearkey",
+    }
+    for _, keygen in ipairs(keygen_candidates) do
+        if fileExists(keygen) or keygen == "dropbearkey" then
+            pcall(os.execute, string.format("chmod +x %s 2>/dev/null", keygen))
+            local ok = os.execute(string.format("%s -t rsa -f /tmp/dropbear_rsa_host_key -s 2048 2>/dev/null", keygen))
+            if ok == 0 and fileExists("/tmp/dropbear_rsa_host_key") then
+                return "/tmp/dropbear_rsa_host_key"
+            end
+        end
+    end
+
+    return nil
+end
+
 -- Locate native Dropbear binary on Kindle
 function ServerManager:findDropbear()
     local candidates = {
@@ -116,23 +164,28 @@ function ServerManager:findDropbear()
         "/mnt/us/koreader/dropbear",
         "/mnt/base-us/koreader/dropbear",
         "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbearmulti",
-        "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbear",
-        "/mnt/us/kmc/kpm/packages/dropbear-ssh/sbin/dropbear",
         "/mnt/base-us/kmc/kpm/packages/dropbear-ssh/bin/dropbearmulti",
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbear",
+        "/mnt/base-us/kmc/kpm/packages/dropbear-ssh/bin/dropbear",
+        "/mnt/us/kmc/kpm/packages/dropbear-ssh/sbin/dropbear",
         "/mnt/us/usbnetlite/bin/dropbearmulti",
-        "/mnt/us/usbnetlite/bin/dropbear",
         "/mnt/base-us/usbnetlite/bin/dropbearmulti",
+        "/mnt/us/usbnetlite/bin/dropbear",
         "/mnt/base-us/usbnetlite/bin/dropbear",
         "/mnt/us/usbnet/bin/dropbearmulti",
+        "/mnt/base-us/usbnet/bin/dropbearmulti",
         "/mnt/us/usbnet/bin/dropbear",
         "/mnt/base-us/usbnet/bin/dropbear",
         "/mnt/us/extensions/usbnet/bin/dropbear",
         "/mnt/base-us/extensions/usbnet/bin/dropbear",
         "/usr/sbin/dropbear",
         "/usr/bin/dropbear",
+        "/sbin/dropbear",
+        "/bin/dropbear",
     }
     for _, path in ipairs(candidates) do
         if fileExists(path) then
+            pcall(os.execute, string.format("chmod +x %s 2>/dev/null", path))
             return path
         end
     end
@@ -169,12 +222,15 @@ end
 function ServerManager:findOpenSsh()
     local candidates = {
         "/mnt/us/usbnet/bin/sshd",
+        "/mnt/base-us/usbnet/bin/sshd",
         "/mnt/us/extensions/usbnet/bin/sshd",
+        "/mnt/base-us/extensions/usbnet/bin/sshd",
         "/usr/sbin/sshd",
         "/usr/bin/sshd",
     }
     for _, path in ipairs(candidates) do
         if fileExists(path) then
+            pcall(os.execute, string.format("chmod +x %s 2>/dev/null", path))
             return path
         end
     end
@@ -189,25 +245,30 @@ end
 --------------------------------------------------------------------------------
 
 function ServerManager:isSshRunning()
-    -- Check local PID
-    local running, pid = self:isPidRunning(self.ssh_pid_file)
-    if running then return true, pid end
-
-    -- Check dropbear-ssh / usbnetlite PID
-    local lite_pid_file = "/mnt/us/usbnetlite/etc/dropbear.pid"
-    if fileExists(lite_pid_file) then
-        local r, p = self:isPidRunning(lite_pid_file)
-        if r then return true, p end
+    -- Check known PID files
+    local pid_files = {
+        self.ssh_pid_file,
+        "/tmp/dropbear_koreader.pid",
+        "/mnt/us/usbnetlite/etc/dropbear.pid",
+        "/mnt/us/usbnet/etc/dropbear.pid",
+        "/var/run/dropbear.pid",
+        "/var/run/sshd.pid",
+    }
+    for _, pf in ipairs(pid_files) do
+        local running, pid = self:isPidRunning(pf)
+        if running then return true, pid end
     end
 
     -- Process check fallback
-    local ok_h, h = pcall(io.popen, "pidof dropbear 2>/dev/null || pgrep dropbear 2>/dev/null")
+    local ok_h, h = pcall(io.popen, "pidof dropbear 2>/dev/null || pidof dropbearmulti 2>/dev/null || pgrep dropbear 2>/dev/null || pidof sshd 2>/dev/null")
     if ok_h and h then
         local p_str = h:read("*l")
         h:close()
-        local p = tonumber(p_str)
-        if p and p > 1 then
-            return true, p
+        if p_str then
+            local pid = tonumber(p_str:match("(%d+)"))
+            if pid and pid > 1 and fileExists("/proc/" .. pid) then
+                return true, pid
+            end
         end
     end
 
@@ -222,33 +283,57 @@ function ServerManager:startSsh()
     local sshd = not dropbear and self:findOpenSsh()
 
     if not dropbear and not sshd then
-        return false, "Neither Dropbear nor OpenSSH was found on Kindle.\nInstall Dropbear SSH or USBNetwork."
+        return false, "Neither Dropbear nor OpenSSH binary was found on Kindle.\nInstall Dropbear SSH (via KPM / KUAL) or USBNetwork."
     end
 
     local port = tonumber(self.settings:get("ssh_port")) or 2222
-    if fileExists("/mnt/us/usbnetlite/bin/dropbearmulti") and (port == 2222 or not port) then
-        port = 2022
-        self.settings:set("ssh_port", 2022)
-    end
     self:openFirewallPort(port)
 
+    local log_file = "/tmp/dropbear_run.log"
+    pcall(os.remove, log_file)
+
     if dropbear then
-        local run_cmd = dropbear:match("dropbearmulti") and (dropbear .. "dropbear") or dropbear
-        local lib_env = ""
-        if fileExists("/mnt/us/usbnetlite/bin/libcrypt.so.1") then
-            lib_env = "LD_LIBRARY_PATH=/mnt/us/usbnetlite/bin "
+        local run_cmd = dropbear
+        if dropbear:match("dropbearmulti") then
+            run_cmd = dropbear .. " dropbear"
         end
 
-        local pass = self:getSshPassword()
-        local pass_arg = (pass and #pass > 0) and string.format("-Y '%s'", pass) or ""
-        local pid_file = dropbear:match("usbnetlite") and "/mnt/us/usbnetlite/etc/dropbear.pid" or self.ssh_pid_file
+        local lib_dirs = {
+            "/mnt/us/usbnet/lib",
+            "/mnt/base-us/usbnet/lib",
+            "/mnt/us/usbnetlite/bin",
+            "/mnt/base-us/usbnetlite/bin",
+            "/mnt/us/kmc/kpm/packages/dropbear-ssh/lib",
+            "/mnt/base-us/kmc/kpm/packages/dropbear-ssh/lib",
+        }
+        local active_lib_dirs = {}
+        for _, ld in ipairs(lib_dirs) do
+            if fileExists(ld) then
+                table.insert(active_lib_dirs, ld)
+            end
+        end
+        local lib_env = ""
+        if #active_lib_dirs > 0 then
+            lib_env = "LD_LIBRARY_PATH=" .. table.concat(active_lib_dirs, ":") .. ":$LD_LIBRARY_PATH "
+        end
 
-        local cmd = string.format("%ssetsid %s -R -p 0.0.0.0:%d %s -K 60 -I 1800 -P %s </dev/null >/tmp/dropbear_run.log 2>&1 &",
-            lib_env, run_cmd, port, pass_arg, pid_file)
+        local hostkey = self:ensureHostKey()
+        local hostkey_arg = hostkey and string.format("-r %s", hostkey) or ""
+
+        local pass = self:getSshPassword()
+        local pass_arg = ""
+        if pass and #pass > 0 and (dropbear:match("kmc") or dropbear:match("usbnetlite")) then
+            pass_arg = string.format("-Y '%s'", pass)
+        end
+
+        pcall(os.execute, "mkdir -p /mnt/us/koreader/settings/SSH /mnt/base-us/koreader/settings/SSH /tmp/dropbear 2>/dev/null")
+
+        local cmd = string.format("%s%s -E -R %s -p 0.0.0.0:%d %s -K 60 -I 1800 -P %s >%s 2>&1 &",
+            lib_env, run_cmd, hostkey_arg, port, pass_arg, self.ssh_pid_file, log_file)
         os.execute(cmd)
     else
-        local cmd = string.format("%s -p %d -o PidFile=%s >/dev/null 2>&1",
-            sshd, port, self.ssh_pid_file)
+        local cmd = string.format("%s -p %d -o PidFile=%s >%s 2>&1 &",
+            sshd, port, self.ssh_pid_file, log_file)
         os.execute(cmd)
     end
 
@@ -260,23 +345,41 @@ function ServerManager:startSsh()
         return true, new_pid
     else
         self:closeFirewallPort(port)
-        return false, "Failed to start native SSH daemon."
+        local err_detail = ""
+        if fileExists(log_file) then
+            local f = io.open(log_file, "r")
+            if f then
+                local content = f:read("*a")
+                f:close()
+                if content and #content > 0 then
+                    err_detail = content:gsub("^%s+", ""):gsub("%s+$", "")
+                end
+            end
+        end
+        if #err_detail > 0 then
+            return false, err_detail
+        else
+            return false, "Failed to start native SSH daemon (process did not remain active)."
+        end
     end
 end
 
 function ServerManager:stopSsh()
     local running, pid = self:isSshRunning()
-    local port = tonumber(self.settings:get("ssh_port")) or 2022
+    local port = tonumber(self.settings:get("ssh_port")) or 2222
     if running and pid then
         os.execute(string.format("kill %d 2>/dev/null", pid))
-        os.execute("sleep 1")
-        if fileExists("/proc/".. pid) then
+        os.execute("sleep 0.5")
+        if fileExists("/proc/" .. pid) then
             os.execute(string.format("kill -9 %d 2>/dev/null", pid))
         end
     end
+    os.execute("pkill -9 dropbear 2>/dev/null")
     self:closeFirewallPort(port)
     pcall(os.remove, self.ssh_pid_file)
+    pcall(os.remove, "/tmp/dropbear_koreader.pid")
     pcall(os.remove, "/mnt/us/usbnetlite/etc/dropbear.pid")
+    pcall(os.remove, "/mnt/us/usbnet/etc/dropbear.pid")
     return true
 end
 

@@ -391,6 +391,53 @@ function NativeServers:getSubMenuItems()
                         dialog:onShowKeyboard()
                     end,
                 },
+                {
+                    text = _("View SSH Startup Log / Diagnostics"),
+                    callback = function()
+                        local log_path = "/tmp/dropbear_run.log"
+                        local content = "No log found at " .. log_path
+                        local f = io.open(log_path, "r")
+                        if f then
+                            local data = f:read("*a")
+                            f:close()
+                            if data and #data > 0 then
+                                content = data
+                            else
+                                content = "Log is empty (daemon started or exited with no stdout/stderr)."
+                            end
+                        end
+                        local dropbear_bin = self_ref.manager:findDropbear() or "Not found"
+                        local sshd_bin = self_ref.manager:findOpenSsh() or "Not found"
+                        local diag = string.format("Detected Binaries:\nDropbear: %s\nOpenSSH: %s\n\nLast Startup Output:\n%s",
+                            dropbear_bin, sshd_bin, content)
+                        UIManager:show(InfoMessage:new{
+                            text = diag,
+                            timeout = 15,
+                        })
+                    end,
+                },
+                {
+                    text = _("Install Dropbear SSH via KPM (Wi-Fi)"),
+                    callback = function()
+                        if os.execute("test -x /var/local/kmc/bin/kpm") ~= 0 then
+                            UIManager:show(InfoMessage:new{
+                                icon = "notice-warning",
+                                text = _("KPM (Kindle Package Manager) not found at /var/local/kmc/bin/kpm.\nPlease install USBNetwork or Dropbear via KUAL / Jailbreak tools."),
+                                timeout = 6,
+                            })
+                            return
+                        end
+                        UIManager:show(InfoMessage:new{
+                            text = _("Downloading and installing Dropbear SSH via KPM... Please wait."),
+                            timeout = 4,
+                        })
+                        os.execute("/var/local/kmc/bin/kpm add-repo https://nealing.net/manifest.json && /var/local/kmc/bin/kpm install dropbear-ssh >/tmp/kpm_install.log 2>&1")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Dropbear SSH installation finished. Try starting SSH now!"),
+                            timeout = 4,
+                        })
+                    end,
+                },
             },
         },
 
