@@ -112,15 +112,22 @@ end
 -- Locate native Dropbear binary on Kindle
 function ServerManager:findDropbear()
     local candidates = {
+        "./dropbear",
+        "/mnt/us/koreader/dropbear",
+        "/mnt/base-us/koreader/dropbear",
         "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbearmulti",
         "/mnt/us/kmc/kpm/packages/dropbear-ssh/bin/dropbear",
         "/mnt/us/kmc/kpm/packages/dropbear-ssh/sbin/dropbear",
+        "/mnt/base-us/kmc/kpm/packages/dropbear-ssh/bin/dropbearmulti",
         "/mnt/us/usbnetlite/bin/dropbearmulti",
         "/mnt/us/usbnetlite/bin/dropbear",
+        "/mnt/base-us/usbnetlite/bin/dropbearmulti",
+        "/mnt/base-us/usbnetlite/bin/dropbear",
         "/mnt/us/usbnet/bin/dropbearmulti",
         "/mnt/us/usbnet/bin/dropbear",
-        "/mnt/us/koreader/dropbear",
+        "/mnt/base-us/usbnet/bin/dropbear",
         "/mnt/us/extensions/usbnet/bin/dropbear",
+        "/mnt/base-us/extensions/usbnet/bin/dropbear",
         "/usr/sbin/dropbear",
         "/usr/bin/dropbear",
     }
