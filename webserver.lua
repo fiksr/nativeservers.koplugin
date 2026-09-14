@@ -24,7 +24,7 @@ end
 -- URL decoding
 local function urlDecode(str)
     if not str then return "" end
-    str = str:gsub("+", "")
+    str = str:gsub("%+", " ")
     str = str:gsub("%%(%x%x)", function(h)
         return string.char(tonumber(h, 16))
     end)
@@ -38,7 +38,7 @@ local function urlEncode(str)
     str = str:gsub("([^%w %-%_%.%~])", function(c)
         return string.format("%%%02X", string.byte(c))
     end)
-    str = str:gsub("", "+")
+    str = str:gsub(" ", "+")
     return str
 end
 
@@ -49,7 +49,7 @@ local function sanitizePath(base, req_path)
     req_path = req_path:match("^([^?]*)") or req_path
     -- Strip directory traversal
     req_path = req_path:gsub("%.%./", ""):gsub("/%.%.", ""):gsub("%.%.", "")
-    if not req_path:match("^/") then req_path = "/".. req_path end
+    if not req_path:match("^/") then req_path = "/" .. req_path end
 
     local full = base .. req_path
     full = full:gsub("//+", "/")
@@ -62,7 +62,7 @@ end
 -- Format bytes into human-readable size
 local function formatSize(bytes)
     bytes = tonumber(bytes) or 0
-    if bytes < 1024 then return bytes .. "B" end
+    if bytes < 1024 then return bytes .. " B" end
     if bytes < 1024 * 1024 then return string.format("%.1f KB", bytes / 1024) end
     if bytes < 1024 * 1024 * 1024 then return string.format("%.1f MB", bytes / (1024 * 1024)) end
     return string.format("%.2f GB", bytes / (1024 * 1024 * 1024))
@@ -112,7 +112,7 @@ local function generateMobileHtml(current_path, base_root)
     pcall(function()
         for entry in lfs.dir(current_path) do
             if entry ~= "." and entry ~= ".." then
-                local full = current_path .. "/".. entry
+                local full = current_path .. "/" .. entry
                 local mode = lfs.attributes(full, "mode")
                 local size = lfs.attributes(full, "size") or 0
                 local mtime = lfs.attributes(full, "modification") or 0
@@ -141,28 +141,28 @@ local function generateMobileHtml(current_path, base_root)
     local rows_html = {}
     if rel_path ~= "/" then
         table.insert(rows_html, string.format([[
-        <tr class="folder-row"onclick="location.href='/?path=%s'">
-            <td colspan="4"><strong> ️ .. (Up to Parent Folder)</strong></td>
+        <tr class="folder-row" onclick="location.href='/?path=%s'">
+            <td colspan="4"><strong>[..] (Parent Directory)</strong></td>
         </tr>]], urlEncode(parent_rel)))
     end
 
     for _, f in ipairs(folders) do
-        local target = rel_path == "/" and ("/".. f.name) or (rel_path .. "/".. f.name)
+        local target = rel_path == "/" and ("/" .. f.name) or (rel_path .. "/" .. f.name)
         table.insert(rows_html, string.format([[
-        <tr class="folder-row"onclick="location.href='/?path=%s'">
-            <td> <strong>%s/</strong></td>
+        <tr class="folder-row" onclick="location.href='/?path=%s'">
+            <td><strong>[DIR] %s/</strong></td>
             <td>Folder</td>
             <td>%s</td>
-            <td class="actions"onclick="event.stopPropagation()">
-                <button class="btn btn-sm btn-danger"onclick="deleteItem('%s', true)">Delete</button>
+            <td class="actions" onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-danger" onclick="deleteItem('%s', true)">Delete</button>
             </td>
         </tr>]], urlEncode(target), f.name, f.time, urlEncode(target)))
     end
 
     for _, f in ipairs(files) do
-        local file_rel = rel_path == "/" and ("/".. f.name) or (rel_path .. "/".. f.name)
-        local icon = f.book and "" or (f.editable and "" or "")
-        local edit_btn = f.editable and string.format([[<button class="btn btn-sm btn-primary"onclick="openEditor('%s', '%s')">️ Edit</button> ]], urlEncode(file_rel), f.name) or ""
+        local file_rel = rel_path == "/" and ("/" .. f.name) or (rel_path .. "/" .. f.name)
+        local tag = f.book and "[Book] " or (f.editable and "[Code] " or "[File] ")
+        local edit_btn = f.editable and string.format([[<button class="btn btn-sm btn-primary" onclick="openEditor('%s', '%s')">Edit</button> ]], urlEncode(file_rel), f.name) or ""
 
         table.insert(rows_html, string.format([[
         <tr>
@@ -171,10 +171,10 @@ local function generateMobileHtml(current_path, base_root)
             <td>%s</td>
             <td class="actions">
                 %s
-                <a class="btn btn-sm btn-secondary"href="/download?path=%s"download>️ Get</a>
-                <button class="btn btn-sm btn-danger"onclick="deleteItem('%s', false)">️</button>
+                <a class="btn btn-sm btn-secondary" href="/download?path=%s" download>Download</a>
+                <button class="btn btn-sm btn-danger" onclick="deleteItem('%s', false)">Delete</button>
             </td>
-        </tr>]], icon, f.name, f.size, f.time, edit_btn, urlEncode(file_rel), urlEncode(file_rel)))
+        </tr>]], tag, f.name, f.size, f.time, edit_btn, urlEncode(file_rel), urlEncode(file_rel)))
     end
 
 local HTML_TEMPLATE = [[<!DOCTYPE html>
