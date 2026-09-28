@@ -90,6 +90,62 @@ local function isBook(name)
     return book_exts[ext] == true
 end
 
+-- MIME types for accurate browser downloads and inline rendering
+local MIME_TYPES = {
+    png = "image/png",
+    jpg = "image/jpeg",
+    jpeg = "image/jpeg",
+    gif = "image/gif",
+    webp = "image/webp",
+    bmp = "image/bmp",
+    svg = "image/svg+xml",
+    epub = "application/epub+zip",
+    mobi = "application/x-mobipocket-ebook",
+    azw3 = "application/vnd.amazon.ebook",
+    pdf = "application/pdf",
+    cbz = "application/vnd.comicbook+zip",
+    cbr = "application/vnd.comicbook-rar",
+    fb2 = "application/x-fictionbook+xml",
+    txt = "text/plain; charset=utf-8",
+    lua = "text/plain; charset=utf-8",
+    json = "application/json; charset=utf-8",
+    xml = "application/xml; charset=utf-8",
+    html = "text/html; charset=utf-8",
+    css = "text/css; charset=utf-8",
+    js = "application/javascript; charset=utf-8",
+    md = "text/markdown; charset=utf-8",
+    py = "text/plain; charset=utf-8",
+    sh = "text/plain; charset=utf-8",
+    zip = "application/zip",
+    tar = "application/x-tar",
+    gz = "application/gzip",
+    mp3 = "audio/mpeg",
+    wav = "audio/wav",
+    ogg = "audio/ogg",
+    m4a = "audio/mp4",
+}
+
+local function getMimeType(filename)
+    local ext = filename:match("%.([^.]+)$")
+    if ext then
+        ext = ext:lower()
+        if MIME_TYPES[ext] then
+            return MIME_TYPES[ext]
+        end
+    end
+    return "application/octet-stream"
+end
+
+local function htmlEscape(str)
+    if not str then return "" end
+    str = str:gsub("&", "&amp;")
+    str = str:gsub("<", "&lt;")
+    str = str:gsub(">", "&gt;")
+    str = str:gsub('"', "&quot;")
+    str = str:gsub("'", "&#39;")
+    return str
+end
+
 --------------------------------------------------------------------------------
 -- HTML MOBILE WEB APP GENERATOR
 --------------------------------------------------------------------------------
@@ -162,7 +218,8 @@ local function generateMobileHtml(current_path, base_root)
     for _, f in ipairs(files) do
         local file_rel = rel_path == "/" and ("/" .. f.name) or (rel_path .. "/" .. f.name)
         local tag = f.book and "[Book] " or (f.editable and "[Code] " or "[File] ")
-        local edit_btn = f.editable and string.format([[<button class="btn btn-sm btn-primary" onclick="openEditor('%s', '%s')">Edit</button> ]], urlEncode(file_rel), f.name) or ""
+        local safe_display_name = htmlEscape(f.name)
+        local edit_btn = f.editable and string.format([[<button class="btn btn-sm btn-primary" onclick="openEditor('%s', '%s')">Edit</button> ]], urlEncode(file_rel), safe_display_name) or ""
 
         table.insert(rows_html, string.format([[
         <tr>
@@ -171,10 +228,10 @@ local function generateMobileHtml(current_path, base_root)
             <td>%s</td>
             <td class="actions">
                 %s
-                <a class="btn btn-sm btn-secondary" href="/download?path=%s" download>Download</a>
+                <a class="btn btn-sm btn-secondary" href="/download?path=%s" download="%s">Download</a>
                 <button class="btn btn-sm btn-danger" onclick="deleteItem('%s', false)">Delete</button>
             </td>
-        </tr>]], tag, f.name, f.size, f.time, edit_btn, urlEncode(file_rel), urlEncode(file_rel)))
+        </tr>]], tag, safe_display_name, f.size, f.time, edit_btn, urlEncode(file_rel), safe_display_name, urlEncode(file_rel)))
     end
 
 local HTML_TEMPLATE = [[<!DOCTYPE html>
@@ -635,11 +692,24 @@ function WebServer:handleClient(client)
     if method == "GET" and (raw_uri:match("^/download") or lfs.attributes(full_path, "mode") == "file") then
         local f = io.open(full_path, "rb")
         if not f then
-            client:send("HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found")
+            client:send("HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\nConnection: close\r\n\r\nNot Found")
             return
         end
         local size = lfs.attributes(full_path, "size") or 0
-        client:send(string.format("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\nConnection: close\r\n\r\n", size))
+        local filename = full_path:match("([^/]+)$") or "download"
+        local mime_type = getMimeType(filename)
+        local safe_filename = filename:gsub('["\r\n]', "_")
+        local encoded_filename = urlEncode(filename)
+
+        local resp_headers = string.format(
+            "HTTP/1.1 200 OK\r\n" ..
+            "Content-Type: %s\r\n" ..
+            "Content-Length: %d\r\n" ..
+            "Content-Disposition: attachment; filename=\"%s\"; filename*=UTF-8''%s\r\n" ..
+            "Connection: close\r\n\r\n",
+            mime_type, size, safe_filename, encoded_filename
+        )
+        client:send(resp_headers)
 
         local chunk_size = 65536
         while true do
