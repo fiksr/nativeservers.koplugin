@@ -1,11 +1,11 @@
 # 🚀 Native Servers for KOReader
 
-[![KOReader](https://img.shields.io/badge/KOReader-2024%2B-blue.svg)](https://github.com/koreader/koreader)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![High Speed](https://img.shields.io/badge/Speed-15--25%20MB%2Fs-success.svg)]()
-[![Storefront Compatible](https://img.shields.io/badge/Storefront-Compatible-purple.svg)](https://omer-faruq.github.io/koreader-plugin-index/)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Development-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/fiksr)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-KOReader%20%7C%20Kindle%20%7C%20Kobo%20%7C%20Android-blue?style=for-the-badge)](https://github.com/koreader/koreader)
+[![Storefront](https://img.shields.io/badge/Storefront-Compatible-purple?style=for-the-badge)](https://omer-faruq.github.io/koreader-plugin-index/)
 
-**Native Servers** turns your KOReader device into a high-speed file transfer workstation. Run native compiled **Dropbear SSH/SFTP**, high-performance **WebDAV**, and an **HTTP Web Browser file manager** with line-speed wireless transfers (15–25 MB/s).
+**Native Servers** turns your KOReader device into a high-speed file transfer workstation. Run native compiled **Dropbear SSH/SFTP**, high-performance **WebDAV**, and a **Mobile Web Browser file manager with in-browser code editing** with line-speed wireless transfers (15–25 MB/s).
 
 ---
 
@@ -78,6 +78,20 @@ If you don't already have Dropbear installed on your Kindle, choose one of these
    - **Web Browser**: Open `http://<your-device-ip>:8080/` in any browser to drag-and-drop books.
    - **WebDAV**: Connect network drive to `http://<your-device-ip>:8080/`.
    - **SFTP (Cyberduck / WinSCP / FileZilla)**: Connect to `sftp://<your-device-ip>:2222` (Username: `root`).
+
+---
+
+## ☕ Support the Project
+
+If Native Servers makes managing your books and Kindle faster and easier, consider supporting future development:
+
+<p align="left">
+  <a href="https://ko-fi.com/fiksr" target="_blank">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee on Ko-fi" height="42" />
+  </a>
+</p>
+
+* **Ko-fi**: [https://ko-fi.com/fiksr](https://ko-fi.com/fiksr)
 
 ---
 
