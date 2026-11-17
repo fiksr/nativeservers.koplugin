@@ -9,6 +9,7 @@ Settings.__index = Settings
 local DEFAULT_SETTINGS = {
     web_port = 8080,
     web_root = "/mnt/us",
+    web_password = "",
     ssh_port = 2222,
     prevent_standby = true,
     auto_stop_on_exit = true,

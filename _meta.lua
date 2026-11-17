@@ -1,7 +1,6 @@
 local _ = require("gettext")
+
 return {
-    name = "nativeservers",
-    fullname = _("Native Servers"),
-    description = _("High-speed WebDAV, mobile browser file manager with in-browser code editing, and Dropbear SSH/SFTP server for KOReader."),
-    version = "1.0.0",
+    fullname = _("Native High-Speed Servers"),
+    description = _("Mobile web file manager with storage analytics and duplicate finder, plus WebDAV and SSH. Start/stop native compiled HTTP, FTP, and Dropbear/OpenSSH servers on jailbroken Kindle for line-speed transfers (15-25 MB/s)."),
 }
