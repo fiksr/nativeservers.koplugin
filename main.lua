@@ -6,7 +6,6 @@ and native USBNetwork SSH / SFTP daemon (Dropbear).
 
 local _ = require("gettext")
 local Device = require("device")
-local Dispatcher = require("dispatcher")
 local InfoMessage = require("ui/widget/infomessage")
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager = require("ui/uimanager")
@@ -30,26 +29,6 @@ local NativeServers = WidgetContainer:extend{
     name = "nativeservers",
     is_doc_only = false,
 }
-
-
-function NativeServers:onDispatcherRegisterActions()
-    Dispatcher:registerAction("nativeservers", {
-        category = "none",
-        event = "ShowNativeServers",
-        title = _("Native Servers"),
-        general = true,
-    })
-end
-
-function NativeServers:onShowNativeServers()
-    local Menu = require("ui/widget/menu")
-    local menu = Menu:new{
-        title = _("Native Servers"),
-        item_table = self:getSubMenuItems(),
-        is_borderless = true,
-    }
-    UIManager:show(menu)
-end
 
 function NativeServers:init()
     if self.ui and self.ui.menu then
@@ -117,7 +96,8 @@ function NativeServers:addToMainMenu(menu_items)
         text = _("Wireless File Manager & Servers"),
         sorting_hint = "more_tools",
         sub_item_table = self:getSubMenuItems(),
-    } end
+    }
+end
 
 function NativeServers:getSubMenuItems()
     local self_ref = self
@@ -129,7 +109,8 @@ function NativeServers:getSubMenuItems()
                 help_text = _("Check settings.lua, servermanager.lua, and webserver.lua in nativeservers.koplugin/"),
                 enabled = false,
             },
-        } end
+        }
+    end
 
     return {
         -- Status & Network Summary
@@ -178,7 +159,7 @@ function NativeServers:getSubMenuItems()
                                 local ip = self_ref.manager:getDeviceIp()
                                 local port = self_ref.settings:get("web_port")
                                 UIManager:show(InfoMessage:new{
-                                    text = string.format(_("Web Manager is RUNNING!\n\n Mobile Browser (Safari/Chrome):\nhttp://%s:%d/\n\n iOS Files App:\nConnect to Server -> http://%s:%d/\n\n(Transfer books & edit code in browser!)"),
+                                    text = string.format(_("Web Manager is RUNNING!\n\n📱 Mobile Browser (Safari/Chrome):\nhttp://%s:%d/\n\n📁 iOS Files App:\nConnect to Server -> http://%s:%d/\n\n(Manage files, see storage stats & find duplicates!)"),
                                         ip, port, ip, port),
                                     timeout = 8,
                                 })
@@ -239,6 +220,40 @@ function NativeServers:getSubMenuItems()
                                                 end
                                             else
                                                 UIManager:show(InfoMessage:new{ text = _("Invalid port (use 80 to 65535)."), timeout = 2 })
+                                            end
+                                        end,
+                                    },
+                                },
+                            },
+                        }
+                        UIManager:show(dialog)
+                        dialog:onShowKeyboard()
+                    end,
+                },
+                {
+                    text_func = function()
+                        local has = (self_ref.settings:get("web_password") or "") ~= ""
+                        return has and _("Web password: ON (tap to change)") or _("Web password: off (tap to set)")
+                    end,
+                    help_text = _("Optional. Browsers and WebDAV apps will ask for it (any username). Leave empty to disable."),
+                    keep_menu_open = true,
+                    callback = function(touchmenu_instance)
+                        local dialog
+                        dialog = InputDialog:new{
+                            title = _("Web password (empty = no password)"),
+                            input = self_ref.settings:get("web_password") or "",
+                            buttons = {
+                                {
+                                    { text = _("Cancel"), id = "close", callback = function() UIManager:close(dialog) end },
+                                    {
+                                        text = _("Save"),
+                                        is_enter_default = true,
+                                        callback = function()
+                                            local val = dialog:getInputText() or ""
+                                            UIManager:close(dialog)
+                                            self_ref.settings:set("web_password", val)
+                                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                                touchmenu_instance:updateItems()
                                             end
                                         end,
                                     },
@@ -391,53 +406,6 @@ function NativeServers:getSubMenuItems()
                         dialog:onShowKeyboard()
                     end,
                 },
-                {
-                    text = _("View SSH Startup Log / Diagnostics"),
-                    callback = function()
-                        local log_path = "/tmp/dropbear_run.log"
-                        local content = "No log found at " .. log_path
-                        local f = io.open(log_path, "r")
-                        if f then
-                            local data = f:read("*a")
-                            f:close()
-                            if data and #data > 0 then
-                                content = data
-                            else
-                                content = "Log is empty (daemon started or exited with no stdout/stderr)."
-                            end
-                        end
-                        local dropbear_bin = self_ref.manager:findDropbear() or "Not found"
-                        local sshd_bin = self_ref.manager:findOpenSsh() or "Not found"
-                        local diag = string.format("Detected Binaries:\nDropbear: %s\nOpenSSH: %s\n\nLast Startup Output:\n%s",
-                            dropbear_bin, sshd_bin, content)
-                        UIManager:show(InfoMessage:new{
-                            text = diag,
-                            timeout = 15,
-                        })
-                    end,
-                },
-                {
-                    text = _("Install Dropbear SSH via KPM (Wi-Fi)"),
-                    callback = function()
-                        if os.execute("test -x /var/local/kmc/bin/kpm") ~= 0 then
-                            UIManager:show(InfoMessage:new{
-                                icon = "notice-warning",
-                                text = _("KPM (Kindle Package Manager) not found at /var/local/kmc/bin/kpm.\nPlease install USBNetwork or Dropbear via KUAL / Jailbreak tools."),
-                                timeout = 6,
-                            })
-                            return
-                        end
-                        UIManager:show(InfoMessage:new{
-                            text = _("Downloading and installing Dropbear SSH via KPM... Please wait."),
-                            timeout = 4,
-                        })
-                        os.execute("/var/local/kmc/bin/kpm add-repo https://nealing.net/manifest.json && /var/local/kmc/bin/kpm install dropbear-ssh >/tmp/kpm_install.log 2>&1")
-                        UIManager:show(InfoMessage:new{
-                            text = _("Dropbear SSH installation finished. Try starting SSH now!"),
-                            timeout = 4,
-                        })
-                    end,
-                },
             },
         },
 
@@ -489,6 +457,7 @@ function NativeServers:getSubMenuItems()
                 },
             },
         },
-    } end
+    }
+end
 
 return NativeServers
